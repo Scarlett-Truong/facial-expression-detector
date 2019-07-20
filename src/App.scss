@@ -1,0 +1,54 @@
+.App {
+  text-align: center;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  color: #ccc;
+}
+
+body{
+  background-color: #282c34;
+  background-color: #0f292f;
+}
+
+img{
+  width: 60%;
+  border: 1px solid #14a098;
+  padding: 10px;
+  margin: 10px;
+}
+
+.MuiFab-primary{
+  margin-left: 20px !important;
+  width: 36px !important;
+  height: 36px !important;
+  /* background-color: #501f3a !important;  */
+  background-color: #14a098 !important; 
+}
+
+.emotions{
+  display: flex;
+  width: 750px;
+  margin: 0px auto;
+  
+  .emoji-icon{
+    padding: 10px;
+  }
+
+  .sampleImg{
+    display: none;
+  }
+}
+
+h3{
+  margin-top: 20px;
+  font-weight: bolder;
+}
+
+#live-camera{
+  border: 1px solid black;
+
+}
+
+.btn{
+  font-size: 11px !important;
+}
