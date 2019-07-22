@@ -14,6 +14,7 @@ import Select from '@material-ui/core/Select';
 import NativeSelect from '@material-ui/core/NativeSelect';
 import Webcam from "react-webcam";
 import { CameraFeed } from './components/CameraFeed';
+import * as tf from '@tensorflow/tfjs';
 
 import happyIcon from './assets/images/happy.png';
 import sadIcon from './assets/images/sad.png';
@@ -22,7 +23,7 @@ import neutralIcon from './assets/images/neutral.png';
 import angryIcon from './assets/images/angry.png';
 import { throwStatement } from '@babel/types';
 
-let SAMPLES = {
+const SAMPLES = {
   0: 0,
   1: 0,
   2: 0,
@@ -50,13 +51,25 @@ class App extends Component {
       epochs: 0,
       units:0,
       predictCount: 0,
+      happySampleCount : 0,
+      sadSampleCount: 0,
+      surprisedSampleCount: 0,
+      angrySampleCount: 0,
+      neutralSampleCount: 0,
+      happySampleImg: null,
+      sadSampleImg: null,
+      angrySampleImg: null,
+      surprisedSampleImg: null,
+      neutralSampleImg: null,    
       isWebcamOn: false,
       extractor: null,
       classifier: null,
       xs: null,
       ys: null,
       stream: null,
+      isPredicting: false,
     }
+    this.captureSample = this.captureSample.bind(this);
   }
 
   async componentDidMount() {
@@ -69,75 +82,192 @@ class App extends Component {
   }
 
   stopCamera = () => {
-    this.setState({ isWebcamOn : false });
+    this.setState({ 
+      isWebcamOn : false,
+      happySampleCount: 0,
+      happySampleImg: null,
+    });
     let stream = this.state.stream;
     stream.getVideoTracks()[0].stop();
-    
   }
 
+  async setDevice(device) {
+    const { deviceId } = device;
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId } });
+    this.setState({ stream });
+    this.videoPlayer.srcObject = stream;
+    this.videoPlayer.play();
+  }
+  
   uploadImage = async file => {
     const formData = new FormData();
     formData.append('file', file);
+    // console.log(file);
   };
 
-  async setDevice(device) {
-      const { deviceId } = device;
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { deviceId } });
-      this.setState({ stream });
-      this.videoPlayer.srcObject = stream;
-      this.videoPlayer.play();
+  preprocessImage = (img) => {
+    const tensor = tf.browser.fromPixels(img)
+                .resizeNearestNeighbor([224, 224]);
+    const croppedTensor = this.cropImage(tensor);
+    const batchedTensor = croppedTensor.expandDims(0);
+    
+    return batchedTensor.toFloat().div(tf.scalar(127)).sub(tf.scalar(1));
   }
 
+  cropImage = (img) => {
+    const size = Math.min(img.shape[0], img.shape[1]);
+    const centerHeight = img.shape[0] / 2;
+    const beginHeight = centerHeight - (size / 2);
+    const centerWidth = img.shape[1] / 2;
+    const beginWidth = centerWidth - (size / 2);
+    return img.slice([beginHeight, beginWidth, 0], [size, size, 3]);
+  }
 
-  takePhoto = () => {
-      const { sendFile } = this.props;
-      const context = this.canvas.getContext('2d');
-      context.drawImage(this.videoPlayer, 0, 0, 680, 360);
-      this.canvas.toBlob(sendFile);
+  captureWebcam = () => {
+    // const { sendFile } = this.props;
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.drawImage(this.videoPlayer, 0, 0, this.videoPlayer.width, this.videoPlayer.height);
+    // this.canvas.toBlob(sendFile);
+    const tfImage = this.preprocessImage(canvas);
+    // console.log(tfImage);
+    return {
+      canvasElement : canvas,
+      canvasTensor : tfImage
+    }
   };
 
-  render(){
-    const handleChange = name => event => {
-      this.setState({
-        ...this.state,
-        [name]: event.target.value,
-      });
-    };
+  captureSample = (id,label) => {
+    if(this.state.isWebcamOn) {
+      let { happySampleCount, sadSampleCount, angrySampleCount, neutralSampleCount, surprisedSampleCount } = this.state;
+      const canvasObj = this.captureWebcam();
+      const canvas = canvasObj.canvasElement;
+      const tensorImg = canvasObj.tfImage;
 
+      // const imgId = id.replace('sample', 'image');
+      // const imgId = id + 'sampleImg';
+      // var img    = document.getElementById(`${id}SampleImg`);
+		  // img.src    = canvas.toDataURL();
+      // console.log(img);
+		  // add the sample to the training tensor
+	  	// addSampleToTensor(extractor.predict(tensor_image), label);
+
+      // const context = this.canvas.getContext('2d');
+      // context.drawImage(this.videoPlayer, 0, 0, 150, 150);
+        
+      // this.canvas.toBlob((file) => {
+      //     const formData = new FormData();
+      //     formData.append('file', file);
+      // });
+
+      // SAMPLES[label] += 1;
+      switch(id) {
+        case 'happy':
+          happySampleCount += 1; 
+          this.setState({
+            happySampleCount: happySampleCount,
+            happySampleImg: canvas.toDataURL()
+          });
+          break;
+        case 'sad':
+          sadSampleCount += 1; 
+          this.setState({
+            sadSampleCount: sadSampleCount,
+            sadSampleImg: canvas.toDataURL()
+          });
+          break;
+        case 'angry':
+          angrySampleCount += 1; 
+          this.setState({
+            angrySampleCount: angrySampleCount,
+            angrySampleImg: canvas.toDataURL()
+          });
+          break;
+        case 'surprised':
+          surprisedSampleCount += 1; 
+          this.setState({
+            surprisedSampleCount: surprisedSampleCount,
+            surprisedSampleImg: canvas.toDataURL()
+          });
+          break;
+        case 'neutral':
+          neutralSampleCount += 1; 
+          this.setState({
+            neutralSampleCount: neutralSampleCount,
+            neutralSampleImg: canvas.toDataURL()
+          });
+          break;
+        default:
+          break;
+      }
+      // if(id==='happy'){
+      //   console.log("Co zo day ko")
+      //   happySampleCount += 1;
+      //   this.setState({
+      //     happySampleCount: happySampleCount,
+      //     happySampleImg: canvas.toDataURL()
+      //   })
+      // }
+      
+      // document.getElementById(`${id}SampleCount`).innerHTML = SAMPLES[label] + " samples";
+    }
+    // else {
+    //   alert('Please press START to turn on Webcam.');
+    // }
+  }
+
+  render(){
     let happySampleCount=0, angrySampleCount=0, sadSampleCount=0, surprisedSampleCount=0,neutralSampleCount=0;
     return (
       <div className="App">
         <h3>Face Expression Detector</h3>
         <Button variant="contained" className="btn btn-add" onClick={this.accessCamera}>Start</Button>
         <div className="emotions">
+
           <div className="emoji-icon" id="happy">
-            <img id="happy" src={happyIcon} alt="happy-icon"/>
+            <img className="icon" id="happy" src={happyIcon} alt="happy-icon"/>
             {/* <Fab color="primary" aria-label="Add">
               <Icon>add</Icon>
             </Fab> */}
-            <Button variant="contained" className="btn btn-add">
+            <Button 
+              variant="contained" 
+              className="btn btn-add"
+              onClick={() => this.captureSample('happy', 0)}
+            >
               Add sample
             </Button>
-            <p className="sample">{happySampleCount} samples</p>
+            <p className="sample">{this.state.happySampleCount} samples</p>
             <div className="sampleImg">
-              <img id="happySampleImg" alt="Happy sample"/>
+              {this.state.happySampleImg && 
+                <img alt="Happy sample" src={this.state.happySampleImg}/>
+              }
             </div>
           </div>
 
-          <div className="emoji-icon"id="sad">
-            <img id="sad" src={sadIcon} alt="sad-icon"/>
-            <Button variant="contained" className="btn btn-add">
+          <div className="emoji-icon">
+            <img className="icon" src={sadIcon} alt="sad-icon"/>
+            <Button 
+              variant="contained" 
+              className="btn btn-add"
+              onClick={() => this.captureSample('sad', 1)}
+            >
               Add sample
             </Button>
             <p className="sample">{sadSampleCount} samples</p>
             <div className="sampleImg">
-              <img id="sadSampleImg" alt="Sad sample"/>
+              {this.state.sadSampleImg &&
+                <img alt="Sad sample" src={this.state.sadSampleImg}/>
+              }
             </div>
           </div>
 
           <div className="emoji-icon"id="angry">
-            <img id="angry" src={angryIcon} alt="angry-icon"/>
-            <Button variant="contained" className="btn btn-add">
+            <img className="icon" id="angry" src={angryIcon} alt="angry-icon"/>
+            <Button 
+              variant="contained" 
+              className="btn btn-add"
+              onClick={this.takePhoto}
+            >
               Add sample
             </Button>
             <p className="sample">{angrySampleCount} samples</p>
@@ -147,8 +277,12 @@ class App extends Component {
           </div>
 
           <div className="emoji-icon"id="surprised">
-            <img id="surprised" src={surprisedcon} alt="surprised-icon"/>
-            <Button variant="contained" className="btn btn-add">
+            <img className="icon" id="surprised" src={surprisedcon} alt="surprised-icon"/>
+            <Button 
+              variant="contained" 
+              className="btn btn-add"
+              onClick={this.takePhoto}
+            >
               Add sample
             </Button>
             <p className="sample">{surprisedSampleCount} samples</p>
@@ -158,8 +292,12 @@ class App extends Component {
           </div>
 
           <div className="emoji-icon" id="neutral">
-            <img id="neutral" src={neutralIcon} alt="happy-icon"/>
-            <Button variant="contained" className="btn btn-add">
+            <img className="icon" id="neutral" src={neutralIcon} alt="happy-icon"/>
+            <Button 
+              variant="contained" 
+              className="btn btn-add"
+              onClick={this.takePhoto}
+            >
               Add sample
             </Button>
             <p className="sample">{neutralSampleCount} samples</p>
@@ -171,7 +309,7 @@ class App extends Component {
         </div>
 
         <div className="camera">
-          <video id="live-camera" width="300px" height="300px" ref={ref => (this.videoPlayer = ref)} />
+          <video id="live-camera" width="300px" height="225.5px" ref={ref => (this.videoPlayer = ref)} />
         </div>
 
         {/* <div className="tuner">
@@ -256,6 +394,8 @@ class App extends Component {
         <div style={{margin: '10px'}}>
           <Button variant="contained" className="btn btn-stop" onClick={this.stopCamera}>Stop</Button>
         </div>
+
+        {/* <CameraFeed sendFile={this.uploadImage} /> */}
       </div>
     );
   }

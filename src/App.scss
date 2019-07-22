@@ -10,7 +10,7 @@ body{
   background-color: #0f292f;
 }
 
-img{
+.icon{
   width: 60%;
   border: 1px solid #14a098;
   padding: 10px;
@@ -34,8 +34,9 @@ img{
     padding: 10px;
   }
 
-  .sampleImg{
-    display: none;
+  .sampleImg img{
+    width: 120px;
+    height: 110px;
   }
 }
 
