@@ -41,6 +41,8 @@ const CATEGORIES = {
   3: "surprised",
   4: "neutral"
 }
+let extractor, xs, ys, classifier;
+let isPredicting = false;
 
 class App extends Component {
   constructor(){
@@ -73,6 +75,13 @@ class App extends Component {
   }
 
   async componentDidMount() {
+    await this.loadExtractor();
+  }
+
+  async loadExtractor() {
+    const mobilenet = await tf.loadLayersModel("https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json");
+    const feature_layer = mobilenet.getLayer("conv_pw_13_relu");
+    extractor = tf.model({inputs: mobilenet.inputs, outputs: feature_layer.output});
   }
   
   accessCamera = async () => {
@@ -132,13 +141,10 @@ class App extends Component {
   }
 
   captureWebcam = () => {
-    // const { sendFile } = this.props;
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     context.drawImage(this.videoPlayer, 0, 0, this.videoPlayer.width, this.videoPlayer.height);
-    // this.canvas.toBlob(sendFile);
     const tfImage = this.preprocessImage(canvas);
-    // console.log(tfImage);
     return {
       canvasElement : canvas,
       canvasTensor : tfImage
@@ -149,8 +155,9 @@ class App extends Component {
     if(this.state.isWebcamOn) {
       let { happySampleCount, sadSampleCount, angrySampleCount, neutralSampleCount, surprisedSampleCount } = this.state;
       const canvasObj = this.captureWebcam();
+      
       const canvas = canvasObj.canvasElement;
-      const tensorImg = canvasObj.tfImage;
+      const tensor_image = canvasObj.canvasTensor;
 
       // const imgId = id.replace('sample', 'image');
       // const imgId = id + 'sampleImg';
@@ -158,7 +165,7 @@ class App extends Component {
 		  // img.src    = canvas.toDataURL();
       // console.log(img);
 		  // add the sample to the training tensor
-	  	// addSampleToTensor(extractor.predict(tensor_image), label);
+	  	this.addSampleToTensor(extractor.predict(tensor_image), label);
 
       // const context = this.canvas.getContext('2d');
       // context.drawImage(this.videoPlayer, 0, 0, 150, 150);
@@ -168,7 +175,6 @@ class App extends Component {
       //     formData.append('file', file);
       // });
 
-      // SAMPLES[label] += 1;
       switch(id) {
         case 'happy':
           happySampleCount += 1; 
@@ -208,21 +214,120 @@ class App extends Component {
         default:
           break;
       }
-      // if(id==='happy'){
-      //   console.log("Co zo day ko")
-      //   happySampleCount += 1;
-      //   this.setState({
-      //     happySampleCount: happySampleCount,
-      //     happySampleImg: canvas.toDataURL()
-      //   })
-      // }
-      
-      // document.getElementById(`${id}SampleCount`).innerHTML = SAMPLES[label] + " samples";
     }
     // else {
     //   alert('Please press START to turn on Webcam.');
     // }
   }
+
+  addSampleToTensor = (sample, label) => {
+    const y = tf.tidy(
+      () => tf.oneHot(tf.tensor1d([label]).toInt(), TOTAL_CATEGORIES));
+    if(xs == null) {
+      xs = tf.keep(sample);
+      ys = tf.keep(y);
+    } else {
+      const oldX = xs;
+      xs = tf.keep(oldX.concat(sample, 0));
+      const oldY = ys;
+      ys = tf.keep(oldY.concat(y, 0));
+      oldX.dispose();
+      oldY.dispose();
+      y.dispose();
+    }
+  }
+
+  async train() {
+    // var selectLearningRate = document.getElementById("emotion-learning-rate");
+    // const learningRate     = selectLearningRate.options[selectLearningRate.selectedIndex].value;
+    // var selectBatchSize    = document.getElementById("emotion-batch-size");
+    // const batchSizeFrac    = selectBatchSize.options[selectBatchSize.selectedIndex].value;
+    
+    // var selectEpochs       = document.getElementById("emotion-epochs");
+    // const epochs           = selectEpochs.options[selectEpochs.selectedIndex].value;
+    
+    // var selectHiddenUnits  = document.getElementById("emotion-hidden-units");
+    // const hiddenUnits      = selectHiddenUnits.options[selectHiddenUnits.selectedIndex].value;
+    
+    const learningRate = 0.0001;
+    const batchSizeFrac = 0.4
+    const epochs = 20;
+    const hiddenUnits = 100;
+
+    if(xs == null) {
+      alert("Please add some samples before training!");
+    } else {
+      classifier = tf.sequential({
+        layers: [
+          tf.layers.flatten({inputShape: [7, 7, 256]}),
+          tf.layers.dense({
+            units: parseInt(hiddenUnits),
+            activation: "relu",
+            kernelInitializer: "varianceScaling",
+            useBias: true
+          }),
+          tf.layers.dense({
+            units: parseInt(TOTAL_CATEGORIES),
+            kernelInitializer: "varianceScaling",
+            useBias: false,
+            activation: "softmax"
+          })
+        ]
+      });
+      const optimizer = tf.train.adam(learningRate);
+      classifier.compile({optimizer: optimizer, loss: "categoricalCrossentropy"});
+  
+      const batchSize = Math.floor(xs.shape[0] * parseFloat(batchSizeFrac));
+      if(!(batchSize > 0)) {
+        alert("Please choose a non-zero fraction for batchSize!");
+      }
+      
+      // create loss visualization
+      // var lossTextEle = document.getElementById("emotion-loss");
+      // if (typeof(lossTextEle) != 'undefined' && lossTextEle != null) {
+      //   lossTextEle.innerHTML = "";
+      // } else {
+      //   var lossText = document.createElement("P");
+      //   lossText.setAttribute("id", "emotion-loss");
+      //   lossText.classList.add('emotion-loss');
+      //   document.getElementById("emotion-controller").insertBefore(lossText, document.getElementById("emotion-controller").children[1]);
+      //   var lossTextEle = document.getElementById("emotion-loss");
+      // }
+  
+      classifier.fit(xs, ys, {
+        batchSize,
+        epochs: parseInt(epochs),
+        callbacks: {
+          onBatchEnd: async (batch, logs) => {
+            console.log(logs.loss.toFixed(5))
+            // lossTextEle.innerHTML = "Loss: " + logs.loss.toFixed(5);
+            await tf.nextFrame();
+          }
+        }
+      });
+    }
+  }
+
+
+// async predictPlay() {
+// 	isPredicting = true;
+// 	while (isPredicting) {
+// 		const predictedClass = tf.tidy(() => {
+// 			canvasObj = this.captureWebcam();
+// 			canvas = canvasObj["canvasElement"];
+// 			const img = canvasObj["canvasTensor"];
+// 			const features = extractor.predict(img);
+// 			const predictions = classifier.predict(features);
+// 			return predictions.as1D().argMax();
+// 		});
+
+// 		const classId = (await predictedClass.data())[0];
+// 		predictedClass.dispose();
+// 		highlightTile(classId);
+
+// 		await tf.nextFrame();
+// 	}
+// }
 
   render(){
     const { happySampleCount, sadSampleCount, angrySampleCount, neutralSampleCount, surprisedSampleCount } = this.state;
@@ -400,7 +505,7 @@ class App extends Component {
           </FormControl>
         </div> */}
         <div style={{margin: '10px'}}>
-          <Button variant="contained" className="btn btn-train">Train model</Button>
+          <Button variant="contained" className="btn btn-train" onClick={this.train}>Train model</Button>
         </div>
         <div style={{margin: '10px'}}>
           <Button variant="contained" className="btn btn-play">Play</Button>
