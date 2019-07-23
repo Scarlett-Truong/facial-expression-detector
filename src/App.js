@@ -86,6 +86,14 @@ class App extends Component {
       isWebcamOn : false,
       happySampleCount: 0,
       happySampleImg: null,
+      sadSampleCount: 0,
+      sadSampleImg: null,
+      angrySampleCount: 0,
+      angrySampleImg: null,
+      surprisedSampleCount: 0,
+      surprisedSampleImg: null,
+      neutralSampleCount: 0,
+      neutralSampleImg: null,
     });
     let stream = this.state.stream;
     stream.getVideoTracks()[0].stop();
@@ -217,7 +225,7 @@ class App extends Component {
   }
 
   render(){
-    let happySampleCount=0, angrySampleCount=0, sadSampleCount=0, surprisedSampleCount=0,neutralSampleCount=0;
+    const { happySampleCount, sadSampleCount, angrySampleCount, neutralSampleCount, surprisedSampleCount } = this.state;
     return (
       <div className="App">
         <h3>Face Expression Detector</h3>
@@ -236,7 +244,7 @@ class App extends Component {
             >
               Add sample
             </Button>
-            <p className="sample">{this.state.happySampleCount} samples</p>
+            <p className="sample">{happySampleCount} samples</p>
             <div className="sampleImg">
               {this.state.happySampleImg && 
                 <img alt="Happy sample" src={this.state.happySampleImg}/>
@@ -266,13 +274,15 @@ class App extends Component {
             <Button 
               variant="contained" 
               className="btn btn-add"
-              onClick={this.takePhoto}
+              onClick={() => this.captureSample('angry', 2)}
             >
               Add sample
             </Button>
             <p className="sample">{angrySampleCount} samples</p>
             <div className="sampleImg">
-              <img id="angrySampleImg" alt="Angry sample"/>
+              {this.state.angrySampleImg && 
+                <img src={this.state.angrySampleImg} alt="Angry sample"/>
+              }
             </div>
           </div>
 
@@ -281,13 +291,15 @@ class App extends Component {
             <Button 
               variant="contained" 
               className="btn btn-add"
-              onClick={this.takePhoto}
+              onClick={() => this.captureSample('surprised', 3)}
             >
               Add sample
             </Button>
             <p className="sample">{surprisedSampleCount} samples</p>
             <div className="sampleImg">
-              <img id="surprisedSampleImg" alt="Surprised sample"/>
+              {this.state.surprisedSampleImg && 
+                <img src={this.state.surprisedSampleImg} alt="Surprised sample"/>
+              }
             </div>
           </div>
 
@@ -296,13 +308,15 @@ class App extends Component {
             <Button 
               variant="contained" 
               className="btn btn-add"
-              onClick={this.takePhoto}
+              onClick={() => this.captureSample('neutral', 4)}
             >
               Add sample
             </Button>
             <p className="sample">{neutralSampleCount} samples</p>
             <div className="sampleImg">
-              <img id="neutralSampleImg" alt="Neutral sample"/>
+              {this.state.neutralSampleImg &&
+                <img src={this.state.neutralSampleImg} alt="Neutral sample"/>             
+              }
             </div>
           </div>
 
