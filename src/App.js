@@ -70,8 +70,12 @@ class App extends Component {
       ys: null,
       stream: null,
       isPredicting: false,
+      lossRate: null,
+      predictedClass: null,
     }
     this.captureSample = this.captureSample.bind(this);
+    this.train = this.train.bind(this);
+    this.predictPlay = this.predictPlay.bind(this);
   }
 
   async componentDidMount() {
@@ -103,7 +107,10 @@ class App extends Component {
       surprisedSampleImg: null,
       neutralSampleCount: 0,
       neutralSampleImg: null,
+      lossRate: null,
+      predictedClass: null,
     });
+    isPredicting = false;
     let stream = this.state.stream;
     stream.getVideoTracks()[0].stop();
   }
@@ -300,6 +307,9 @@ class App extends Component {
         callbacks: {
           onBatchEnd: async (batch, logs) => {
             console.log(logs.loss.toFixed(5))
+            if(logs && logs.loss){
+              this.setState({ lossRate : logs.loss.toFixed(5)})
+            }
             // lossTextEle.innerHTML = "Loss: " + logs.loss.toFixed(5);
             await tf.nextFrame();
           }
@@ -309,25 +319,40 @@ class App extends Component {
   }
 
 
-// async predictPlay() {
-// 	isPredicting = true;
-// 	while (isPredicting) {
-// 		const predictedClass = tf.tidy(() => {
-// 			canvasObj = this.captureWebcam();
-// 			canvas = canvasObj["canvasElement"];
-// 			const img = canvasObj["canvasTensor"];
-// 			const features = extractor.predict(img);
-// 			const predictions = classifier.predict(features);
-// 			return predictions.as1D().argMax();
-// 		});
+  async predictPlay() {
+    isPredicting = true;
+    while (isPredicting) {
+      const predictedClass = tf.tidy(() => {
+        let canvasObj = this.captureWebcam();
+        const img = canvasObj.canvasTensor;
+        const features = extractor.predict(img);
+        const predictions = classifier.predict(features);
+        return predictions.as1D().argMax();
+      });
 
-// 		const classId = (await predictedClass.data())[0];
-// 		predictedClass.dispose();
-// 		highlightTile(classId);
+      const classId = (await predictedClass.data())[0];
+      console.log(classId);
+      predictedClass.dispose();
+      // this.highlightTile(classId);
+      this.setState({ predictedClass: classId });
+      await tf.nextFrame();
+    }
+  }
 
-// 		await tf.nextFrame();
-// 	}
-// }
+  highlightTile(classId) {
+    var tile_play    = document.getElementById(TOTAL_CATEGORIES[classId].replace("emoticon", "emotion"));	
+
+    var tile_plays = document.getElementsByClassName("emotion-kit-comps");
+    for (var i = 0; i < tile_plays.length; i++) {
+      tile_plays[i].style.borderColor     = "#e9e9e9";
+      tile_plays[i].style.backgroundColor = "#ffffff";
+      tile_plays[i].style.transform       = "scale(1.0)";
+    }
+
+    tile_play.style.borderColor     = "#e88139";
+    tile_play.style.backgroundColor = "#ff9c56";
+    tile_play.style.transform       = "scale(1.1)";
+  }
 
   render(){
     const { happySampleCount, sadSampleCount, angrySampleCount, neutralSampleCount, surprisedSampleCount } = this.state;
@@ -338,7 +363,9 @@ class App extends Component {
         <div className="emotions">
 
           <div className="emoji-icon" id="happy">
-            <img className="icon" id="happy" src={happyIcon} alt="happy-icon"/>
+            <img className="icon" 
+            predicted={(this.state.predictedClass === 0)? 'true': 'false'}
+            src={happyIcon} alt="happy-icon"/>
             {/* <Fab color="primary" aria-label="Add">
               <Icon>add</Icon>
             </Fab> */}
@@ -358,7 +385,9 @@ class App extends Component {
           </div>
 
           <div className="emoji-icon">
-            <img className="icon" src={sadIcon} alt="sad-icon"/>
+            <img className="icon" 
+            predicted={(this.state.predictedClass === 1)? 'true': 'false'}
+            src={sadIcon} alt="sad-icon"/>
             <Button 
               variant="contained" 
               className="btn btn-add"
@@ -375,7 +404,9 @@ class App extends Component {
           </div>
 
           <div className="emoji-icon"id="angry">
-            <img className="icon" id="angry" src={angryIcon} alt="angry-icon"/>
+            <img className="icon" 
+            predicted={(this.state.predictedClass === 2)? 'true': 'false'} 
+            src={angryIcon} alt="angry-icon"/>
             <Button 
               variant="contained" 
               className="btn btn-add"
@@ -392,7 +423,7 @@ class App extends Component {
           </div>
 
           <div className="emoji-icon"id="surprised">
-            <img className="icon" id="surprised" src={surprisedcon} alt="surprised-icon"/>
+            <img className="icon" predicted={(this.state.predictedClass === 3)? 'true': 'false'} src={surprisedcon} alt="surprised-icon"/>
             <Button 
               variant="contained" 
               className="btn btn-add"
@@ -409,7 +440,7 @@ class App extends Component {
           </div>
 
           <div className="emoji-icon" id="neutral">
-            <img className="icon" id="neutral" src={neutralIcon} alt="happy-icon"/>
+            <img className="icon" predicted={(this.state.predictedClass === 4)? 'true': 'false'} src={neutralIcon} alt="happy-icon"/>
             <Button 
               variant="contained" 
               className="btn btn-add"
@@ -506,9 +537,10 @@ class App extends Component {
         </div> */}
         <div style={{margin: '10px'}}>
           <Button variant="contained" className="btn btn-train" onClick={this.train}>Train model</Button>
+          {this.state.lossRate && <p>Loss: {this.state.lossRate}</p>}
         </div>
         <div style={{margin: '10px'}}>
-          <Button variant="contained" className="btn btn-play">Play</Button>
+          <Button variant="contained" className="btn btn-play" onClick={this.predictPlay}>Play</Button>
         </div>
         <div style={{margin: '10px'}}>
           <Button variant="contained" className="btn btn-stop" onClick={this.stopCamera}>Stop</Button>

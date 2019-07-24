@@ -15,7 +15,16 @@ body{
   border: 1px solid #14a098;
   padding: 10px;
   margin: 10px;
+  &[predicted=true] {
+    border: 5px solid #cb2d6f;
+    transition: 0.5s;
+  }
+  &[predicted=false] {
+    border: 1px solid #14a098;
+    transition: 0.5s;
+  }
 }
+
 
 .MuiFab-primary{
   margin-left: 20px !important;
