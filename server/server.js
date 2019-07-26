@@ -14,15 +14,15 @@ var server = app.listen(port, () => {
     console.log('server is listening on port', server.address().port)
 })
 
-
 app.put('/', (req, res) =>{
 	console.log(req.body.wFilter);
 	console.log(req.body.table);
 	w5ndb.readDB(req, res);
 });
 
-// /:code would capture any data passed using this format /:1 (code would receive 1)
+app.get('/', (req, res) => res.send('Hello World!'))
 
+// /:code would capture any data passed using this format /:1 (code would receive 1)
 app.post('/:code', (req, res) =>{
 	console.log(req.params.code + " , " + req.body.lname + ", " + req.body.fname);
 	if (req.params.code == 1)
