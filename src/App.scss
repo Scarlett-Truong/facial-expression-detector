@@ -36,8 +36,9 @@ body{
 
 .emotions{
   display: flex;
-  width: 750px;
-  margin: 0px auto;
+  min-width: 300px;
+  // width: 750px;
+  // margin: 0px auto;
   
   .emoji-icon{
     padding: 10px;
