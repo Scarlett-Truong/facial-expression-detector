@@ -363,7 +363,7 @@ class App extends Component {
     return (
       <div className="App">
         <div className="container">
-          <h1>Face Expression Detector</h1>
+          <h1>Facial Expressions Detector</h1>
           <Button variant="contained" className="btn btn-add" onClick={this.accessCamera}>Start</Button>
           <div className="emotions">
 
