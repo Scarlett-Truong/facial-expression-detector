@@ -1,19 +1,6 @@
 import React, { Component } from 'react';
 import './App.scss';
 import Button from '@material-ui/core/Button';
-// import Fab from '@material-ui/core/Fab';
-import { makeStyles } from '@material-ui/core/styles';
-// import Icon from '@material-ui/core/Icon';
-import Input from '@material-ui/core/Input';
-import OutlinedInput from '@material-ui/core/OutlinedInput';
-import FilledInput from '@material-ui/core/FilledInput';
-import InputLabel from '@material-ui/core/InputLabel';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import FormControl from '@material-ui/core/FormControl';
-import Select from '@material-ui/core/Select';
-import NativeSelect from '@material-ui/core/NativeSelect';
-import Webcam from "react-webcam";
-import { CameraFeed } from './components/CameraFeed';
 import * as tf from '@tensorflow/tfjs';
 
 import happyIcon from './assets/images/happy.png';
@@ -21,8 +8,7 @@ import sadIcon from './assets/images/sad.png';
 import surprisedcon from './assets/images/surprised.png';
 import neutralIcon from './assets/images/neutral.png';
 import angryIcon from './assets/images/angry.png';
-import model from './assets/model.json';
-import { throwStatement } from '@babel/types';
+
 
 const SAMPLES = {
   0: 0,
