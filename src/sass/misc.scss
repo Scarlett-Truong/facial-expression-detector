@@ -1,0 +1,16 @@
+@function z($name) {
+    @if index($z-indexes, $name) {
+        @return (index($z-indexes, $name) - 2);
+    } @else {
+        @warn 'There is no item "#{$name}" in this list; choose one of: #{$z-indexes}';
+        @return null;
+    }
+}
+$z-indexes: (
+    "button-before",
+    "button-after",
+    "button",
+    "tootltip",
+    "header",
+    "modal",
+);

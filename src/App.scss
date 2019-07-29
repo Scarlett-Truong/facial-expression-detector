@@ -1,26 +1,50 @@
+@import "./sass/buttons.scss";
+
 .App {
   text-align: center;
   font-family: 'Roboto', sans-serif;
   font-size: 14px;
-  color: #ccc;
+  color: #f5f5f5;
+  // color: #7a7a8c
 }
 
 body{
-  background-color: #282c34;
-  background-color: #0f292f;
+  // background-color: #282c34;
+  // background-color: #cccccc;
+  // background-color: #0f292f;
+  // background: #404349;
+  background: rgb(16, 14, 23);
+  // background-image: radi-gradient( #434343, #000000);
 }
 
+// #root{
+//   min-width: 400px;
+//   margin: 0 auto;
+// }
+
+h1{
+  margin: 20px 0px;
+  font-family: 'Lobster';
+  background: -webkit-linear-gradient(100deg,#d91c60 20%,#ed563c, #ff8a04);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 .icon{
-  width: 60%;
-  border: 1px solid #14a098;
+  // width: 60%;
+  // border: 1px solid #14a098;
+  border: 1px solid #404349;
+  width: 80px;
+  height: 80px;
   padding: 10px;
-  margin: 10px;
+  margin: 10px auto;
   &[predicted=true] {
-    border: 5px solid #cb2d6f;
+    // border: 5px solid #cb2d6f;
+    border: 5px solid #fc5185;
     transition: 0.5s;
   }
   &[predicted=false] {
-    border: 1px solid #14a098;
+    // border: 1px solid #14a098;
+    border: 3px solid rgb(32, 28, 41);
     transition: 0.5s;
   }
 }
@@ -36,17 +60,33 @@ body{
 
 .emotions{
   display: flex;
-  min-width: 300px;
-  // width: 750px;
-  // margin: 0px auto;
+  flex-wrap: wrap;
+  max-width: 700px;
+  margin: 0px auto;
   
   .emoji-icon{
-    padding: 10px;
+    padding: 10px 10px 30px 10px;
+    display: flex;
+    flex-direction: column;
+    width: calc(100% /5);
+    // &[isMobile=false]{
+    //   width: 140px;
+    // }
+    // &[isMobile=true]{
+    //   width: calc(100% /5);
+    // }
   }
-
   .sampleImg img{
-    width: 120px;
-    height: 110px;
+    // width: 120px;
+    // height: 110px;
+    width: calc((500% / 5) - 2px);
+    height: 90px;
+    &[ismobile=false]{
+      height: 90px;
+    }
+    &[ismobile=true]{
+      height: 40px;
+    }
   }
 }
 
@@ -62,4 +102,41 @@ h3{
 
 .btn{
   font-size: 11px !important;
+}
+
+.footer{
+  margin-top: 30px;
+  font-size: 12px;
+  color: #7a7a8c;
+
+  a{
+    text-decoration: none;
+    color: #7a7a8c;
+  }
+
+  p{
+    margin: 2px;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .container{
+    width: 100%;
+  }
+}
+
+@media (min-width: 320px) and (max-width: 480px) {
+  .sample{
+    font-size: 13px;
+  }
+  .emoji-icon{
+    width: 10%;
+  }
+  .icon{
+    width: 60px;
+    height: 60px;
+  }
+  .footer{
+    font-size: 9px;
+  }
 }
